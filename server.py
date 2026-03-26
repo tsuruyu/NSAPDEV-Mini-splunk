@@ -1,13 +1,40 @@
 import socket
 import threading
 import sys
+from datetime import datetime
 
 import MOD_READ
 import MOD_QUERY
 import MOD_ADMIN
 
-HOST = "0.0.0.0"
-DEFAULT_PORT = 65432
+HOST         = "0.0.0.0"
+DEFAULT_PORT = 1337
+
+def log(addr: tuple, message: str):
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{ts}] [{addr[0]}:{addr[1]}] {message}")
+
+
+def describe_command(raw: str) -> str:
+    parts    = raw.split("|", 2)
+    cmd_type = parts[0].strip().upper() if parts else ""
+
+    if cmd_type == "UPLOAD" and len(parts) >= 2:
+        return f"INGEST {parts[1].strip()}"
+
+    elif cmd_type == "QUERY" and len(parts) >= 3:
+        sub = parts[1].strip().upper()
+        arg = parts[2].strip()
+        return f"QUERY {sub} \"{arg}\""
+
+    elif cmd_type == "ADMIN" and len(parts) >= 2:
+        return f"ADMIN {parts[1].strip().upper()}"
+
+    elif cmd_type == "DISCONNECT":
+        return "DISCONNECT"
+
+    return f"UNKNOWN \"{raw[:60]}\""
+
 
 def dispatch(message: str) -> str:
     parts    = message.split("|", 2)
@@ -51,35 +78,54 @@ def dispatch(message: str) -> str:
         return f"ERROR: Unknown command type '{cmd_type}'."
 
 
-def recv_all(conn: socket.socket) -> str:
+def recv_all(conn: socket.socket) -> str | None:
     buffer = b""
     while True:
-        chunk = conn.recv(65536)
+        try:
+            chunk = conn.recv(65536)
+        except OSError:
+            return None
+
         if not chunk:
-            break
+            return None
+
         buffer += chunk
         if buffer.endswith(b"<<END>>"):
-            buffer = buffer[: -len(b"<<END>>")]
-            break
-    return buffer.decode("utf-8", errors="replace")
+            return buffer[: -len(b"<<END>>")].decode("utf-8", errors="replace")
 
 
 def handle_client(conn: socket.socket, addr: tuple):
-    print(f"[SERVER] Connection accepted from {addr[0]}:{addr[1]}")
+    log(addr, "Connection accepted.")
     try:
         while True:
             raw = recv_all(conn)
-            if not raw:
+
+            if raw is None:
+                log(addr, "Client disconnected abruptly (process killed or network dropped).")
                 break
-            response = dispatch(raw.strip())
+
+            raw = raw.strip()
+
+            if not raw:
+                continue
+
+            cmd_label = describe_command(raw)
+            log(addr, f"Command received: {cmd_label}")
+
+            if raw.split("|", 1)[0].strip().upper() == "DISCONNECT":
+                log(addr, "Client sent EXIT. Closing connection.")
+                conn.sendall(("BYE\n<<END>>").encode("utf-8"))
+                break
+
+            response = dispatch(raw)
             conn.sendall((response + "\n<<END>>").encode("utf-8"))
-    except (ConnectionResetError, BrokenPipeError):
-        print(f"[SERVER] Client {addr[0]}:{addr[1]} disconnected abruptly.")
+            log(addr, f"Response sent for: {cmd_label}")
+
     except Exception as ex:
-        print(f"[SERVER] Error handling client {addr[0]}:{addr[1]}: {ex}")
+        log(addr, f"Unexpected error: {ex}")
     finally:
         conn.close()
-        print(f"[SERVER] Connection closed for {addr[0]}:{addr[1]}")
+        log(addr, "Connection closed.")
 
 
 def main():
@@ -95,7 +141,7 @@ def main():
             conn, addr = server_sock.accept()
             t = threading.Thread(target=handle_client, args=(conn, addr), daemon=True)
             t.start()
-            print(f"[SERVER] Spawned worker thread for {addr[0]}:{addr[1]}")
+            log(addr, "Spawned worker thread.")
     except KeyboardInterrupt:
         print("\n[SERVER] Shutting down.")
     finally:

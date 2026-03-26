@@ -42,9 +42,60 @@ Available Commands
 
   HELP  — Show this help text.
   CLEAR — Clear the terminal and redisplay the banner.
-  EXIT  — Quit the client.
+  EXIT  — Disconnect from server and quit.
 ──────────────────────────────────────────────────────────
 """
+
+
+class Session:
+    def __init__(self):
+        self._sock: socket.socket | None = None
+        self._addr: tuple[str, int] | None = None
+
+    def connect(self, host: str, port: int):
+        if self._sock and self._addr == (host, port):
+            return
+        if self._sock:
+            self._sock.close()
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+        self._sock = s
+        self._addr = (host, port)
+        print(f"[System Message] Connected to {host}:{port}")
+
+    def send(self, payload: str) -> str:
+        self._sock.sendall((payload + "<<END>>").encode("utf-8"))
+
+        buffer = b""
+        while True:
+            chunk = self._sock.recv(65536)
+            if not chunk:
+                raise ConnectionResetError("Server closed the connection unexpectedly.")
+            buffer += chunk
+            if buffer.endswith(b"\n<<END>>"):
+                buffer = buffer[: -len(b"\n<<END>>")]
+                break
+
+        return buffer.decode("utf-8", errors="replace").strip()
+
+    def disconnect(self):
+        if self._sock:
+            try:
+                self._sock.sendall(("DISCONNECT||<<END>>").encode("utf-8"))
+                self._sock.recv(1024)
+            except OSError:
+                pass
+            finally:
+                self._sock.close()
+                self._sock = None
+                self._addr = None
+
+    @property
+    def connected(self) -> bool:
+        return self._sock is not None
+
+
+session = Session()
 
 
 def path_completer(text: str, state: int):
@@ -77,22 +128,15 @@ def parse_address(addr_str: str) -> tuple[str, int]:
         raise ValueError(f"Invalid address format '{addr_str}'. Expected <IP>:<Port>.")
 
 
-def send_and_receive(host: str, port: int, payload: str) -> str:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((host, port))
-        s.sendall((payload + "<<END>>").encode("utf-8"))
-
-        buffer = b""
-        while True:
-            chunk = s.recv(65536)
-            if not chunk:
-                break
-            buffer += chunk
-            if buffer.endswith(b"\n<<END>>"):
-                buffer = buffer[: -len(b"\n<<END>>")]
-                break
-
-    return buffer.decode("utf-8", errors="replace").strip()
+def do_send(host: str, port: int, payload: str) -> str | None:
+    try:
+        session.connect(host, port)
+        return session.send(payload)
+    except ConnectionRefusedError:
+        print(f"[Client Error] Connection refused. Is the server running on {host}:{port}?")
+    except (ConnectionResetError, OSError) as e:
+        print(f"[Client Error] Connection lost: {e}")
+    return None
 
 
 def cmd_ingest(tokens: list[str]):
@@ -120,8 +164,6 @@ def cmd_ingest(tokens: list[str]):
     )
     filename = os.path.basename(file_path)
 
-    print(f"[System Message] Connecting to {host}:{port}...")
-
     try:
         with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
             file_data = fh.read()
@@ -131,15 +173,9 @@ def cmd_ingest(tokens: list[str]):
 
     print(f"[System Message] Uploading {filename} ({size_label})...")
 
-    payload = f"UPLOAD|{filename}|{file_data}"
-
-    try:
-        response = send_and_receive(host, port, payload)
+    response = do_send(host, port, f"UPLOAD|{filename}|{file_data}")
+    if response is not None:
         print(f"[Server Response] {response}")
-    except ConnectionRefusedError:
-        print(f"[Client Error] Connection refused. Is the server running on {host}:{port}?")
-    except Exception as e:
-        print(f"[Client Error] {e}")
 
 
 def cmd_search_date(host: str, port: int, tokens: list[str]):
@@ -148,18 +184,11 @@ def cmd_search_date(host: str, port: int, tokens: list[str]):
         return
 
     argument = " ".join(tokens[3:]).strip('"').strip("'")
-
     print("[System Message] Sending query...")
 
-    payload = f"QUERY|SEARCH_DATE|{argument}"
-
-    try:
-        response = send_and_receive(host, port, payload)
+    response = do_send(host, port, f"QUERY|SEARCH_DATE|{argument}")
+    if response is not None:
         print(f"[Server Response] {response}")
-    except ConnectionRefusedError:
-        print(f"[Client Error] Connection refused. Is the server running on {host}:{port}?")
-    except Exception as e:
-        print(f"[Client Error] {e}")
 
 
 def cmd_search_host(host: str, port: int, tokens: list[str]):
@@ -266,7 +295,8 @@ def repl():
         try:
             raw = input("client> ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\n[System Message] Exiting. Goodbye.")
+            print("\n[System Message] Disconnecting and exiting. Goodbye.")
+            session.disconnect()
             sys.exit(0)
 
         if not raw:
@@ -276,7 +306,8 @@ def repl():
         command = tokens[0].upper()
 
         if command == "EXIT":
-            print("[System Message] Exiting. Goodbye.")
+            print("[System Message] Disconnecting and exiting. Goodbye.")
+            session.disconnect()
             sys.exit(0)
 
         elif command == "CLEAR":
