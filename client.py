@@ -1,6 +1,7 @@
 import socket
 import os
 import sys
+import glob
 import readline
 
 BANNER = """
@@ -40,10 +41,32 @@ Available Commands
       Clear all indexed log entries on the server.
 
   HELP  — Show this help text.
-  CLEAR — Clear the terminal.
+  CLEAR — Clear the terminal and redisplay the banner.
   EXIT  — Quit the client.
 ──────────────────────────────────────────────────────────
 """
+
+
+def path_completer(text: str, state: int):
+    expanded = os.path.expanduser(text)
+
+    if os.path.isdir(expanded) and not expanded.endswith(os.sep):
+        expanded += os.sep
+
+    matches = glob.glob(expanded + "*")
+    matches = [
+        (m + os.sep if os.path.isdir(m) else m)
+        for m in sorted(matches)
+    ]
+
+    if text.startswith("~"):
+        home    = os.path.expanduser("~")
+        matches = ["~" + m[len(home):] for m in matches]
+
+    try:
+        return matches[state]
+    except IndexError:
+        return None
 
 
 def parse_address(addr_str: str) -> tuple[str, int]:
@@ -234,6 +257,8 @@ def clear_screen():
 
 
 def repl():
+    readline.set_completer(path_completer)
+    readline.set_completer_delims(" \t\n")
     readline.parse_and_bind("tab: complete")
 
     clear_screen()
