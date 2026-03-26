@@ -1,7 +1,9 @@
-# ╔══════════════════════════════════════════════════════════╗
-# ║     Concurrent Syslog Analytics Server  —  Forwarder     ║
-# ║              NSAPDEV  |  Baradas & Loja                  ║
-# ╚══════════════════════════════════════════════════════════╝
+```
+╔══════════════════════════════════════════════════════════╗
+║     Concurrent Syslog Analytics Server  —  Forwarder     ║
+║              NSAPDEV  |  Baradas & Loja                  ║
+╚══════════════════════════════════════════════════════════╝
+```
 
 # Installation and allowing git read/write access
 Save this key in `~/.ssh/id_ed25519.pub`
