@@ -6,8 +6,8 @@ import readline
 
 BANNER = """
 ╔══════════════════════════════════════════════════════════╗
-║     Concurrent Syslog Analytics Server  —  Forwarder     ║
-║              NSAPDEV  |  Baradas & Loja                  ║
+║   Welcome to the "Mini-Splunk" Syslog Analytics Server   ║
+║                NSAPDEV  |  Baradas & Loja                ║
 ╚══════════════════════════════════════════════════════════╝
 Type HELP to list available commands. Type EXIT to quit.
 """

@@ -1,9 +1,5 @@
-```
-╔══════════════════════════════════════════════════════════╗
-║     Concurrent Syslog Analytics Server  —  Forwarder     ║
-║              NSAPDEV  |  Baradas & Loja                  ║
-╚══════════════════════════════════════════════════════════╝
-```
+# NSAPDEV "Mini-Splunk" Syslog Analytics Server 
+# S12B - Baradas & Loja
 
 # Installation and allowing git read/write access
 Save this key in `~/.ssh/id_ed25519.pub`
