@@ -1,4 +1,4 @@
-import store
+import MOD_STORE
 
 
 def purge() -> str:

@@ -2,9 +2,9 @@ import socket
 import threading
 import sys
 
-import read
-import query
-import admin
+import MOD_READ
+import MOD_QUERY
+import MOD_ADMIN
 
 HOST = "0.0.0.0"
 DEFAULT_PORT = 65432
@@ -16,7 +16,7 @@ def dispatch(message: str) -> str:
     if cmd_type == "UPLOAD":
         if len(parts) < 3:
             return "ERROR: UPLOAD requires a filename and file data."
-        return read.ingest(parts[2])
+        return MOD_READ.ingest(parts[2])
 
     elif cmd_type == "QUERY":
         if len(parts) < 3:
@@ -24,17 +24,17 @@ def dispatch(message: str) -> str:
         sub = parts[1].strip().upper()
         arg = parts[2].strip()
         if sub == "SEARCH_DATE":
-            return query.search_date(arg)
+            return MOD_QUERY.search_date(arg)
         elif sub == "SEARCH_HOST":
-            return query.search_host(arg)
+            return MOD_QUERY.search_host(arg)
         elif sub == "SEARCH_DAEMON":
-            return query.search_daemon(arg)
+            return MOD_QUERY.search_daemon(arg)
         elif sub == "SEARCH_SEVERITY":
-            return query.search_severity(arg)
+            return MOD_QUERY.search_severity(arg)
         elif sub == "SEARCH_KEYWORD":
-            return query.search_keyword(arg)
+            return MOD_QUERY.search_keyword(arg)
         elif sub == "COUNT_KEYWORD":
-            return query.count_keyword(arg)
+            return MOD_QUERY.count_keyword(arg)
         else:
             return f"ERROR: Unknown QUERY subcommand '{sub}'."
 
@@ -43,7 +43,7 @@ def dispatch(message: str) -> str:
             return "ERROR: ADMIN requires a subcommand."
         sub = parts[1].strip().upper()
         if sub == "PURGE":
-            return admin.purge()
+            return MOD_ADMIN.purge()
         else:
             return f"ERROR: Unknown ADMIN subcommand '{sub}'."
 

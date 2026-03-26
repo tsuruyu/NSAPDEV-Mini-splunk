@@ -1,5 +1,5 @@
 from datetime import datetime
-import store
+import MOD_STORE as store
 
 
 def search_date(date_str: str) -> str:
