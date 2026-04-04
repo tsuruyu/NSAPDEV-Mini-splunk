@@ -33,8 +33,22 @@ def search_date(date_str: str) -> str:
 
 
 def search_host(hostname: str) -> str:
-    # TODO: implement SEARCH_HOST
-    pass
+    store.acquire_read()
+    try:
+        results = [
+            entry for entry in store.log_store
+            if entry["hostname"].lower() == hostname.strip().lower()
+        ]
+    finally:
+        store.release_read()
+
+    if not results:
+        return f"Found 0 matching entries for host '{hostname}'."
+
+    lines = [f"Found {len(results)} matching entries for host '{hostname}':"]
+    for i, e in enumerate(results, 1):
+        lines.append(f"{i}. {store.format_entry(e)}")
+    return "\n".join(lines)
 
 
 def search_daemon(daemon: str) -> str:

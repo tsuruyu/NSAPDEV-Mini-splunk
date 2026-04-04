@@ -192,8 +192,16 @@ def cmd_search_date(host: str, port: int, tokens: list[str]):
 
 
 def cmd_search_host(host: str, port: int, tokens: list[str]):
-    # TODO: implement SEARCH_HOST
-    pass
+    if len(tokens) < 4:
+        print("[Client Error] Usage: QUERY <IP>:<Port> SEARCH_HOST <hostname>")
+        return
+
+    argument = tokens[3]
+    print("[System Message] Sending query...")
+
+    response = do_send(host, port, f"QUERY|SEARCH_HOST|{argument}")
+    if response is not None:
+        print(f"[Server Response] {response}")
 
 
 def cmd_search_daemon(host: str, port: int, tokens: list[str]):
@@ -217,8 +225,11 @@ def cmd_count_keyword(host: str, port: int, tokens: list[str]):
 
 
 def cmd_purge(host: str, port: int):
-    # TODO: implement PURGE
-    pass
+    print(f"[System Message] Connecting to {host}:{port} to purge records...")
+
+    response = do_send(host, port, "ADMIN|PURGE")
+    if response is not None:
+        print(f"[Server Response] {response}")
 
 
 def cmd_query(tokens: list[str]):
@@ -281,7 +292,7 @@ def cmd_admin(tokens: list[str]):
 
 
 def clear_screen():
-    os.system("clear")
+    os.system("cls" if os.name == "nt" else "clear")
     print(BANNER)
 
 
