@@ -52,20 +52,72 @@ def search_host(hostname: str) -> str:
 
 
 def search_daemon(daemon: str) -> str:
-    # TODO: implement SEARCH_DAEMON
-    pass
+    store.acquire_read()
+    try:
+        results = [
+            entry for entry in store.log_store
+            if entry["process"].lower() == daemon.strip().lower()
+        ]
+    finally:
+        store.release_read()
+
+    if not results:
+        return f"Found 0 matching entries for daemon '{daemon}'."
+
+    lines = [f"Found {len(results)} matching entries for daemon '{daemon}':"]
+    for i, e in enumerate(results, 1):
+        lines.append(f"{i}. {store.format_entry(e)}")
+    return "\n".join(lines)
 
 
 def search_severity(level: str) -> str:
-    # TODO: implement SEARCH_SEVERITY
-    pass
+    store.acquire_read()
+    try:
+        results = [
+            entry for entry in store.log_store
+            if entry["severity"].upper() == level.strip().upper()
+        ]
+    finally:
+        store.release_read()
+
+    if not results:
+        return f"Found 0 matching entries for severity '{level}'."
+
+    lines = [f"Found {len(results)} matching entries for severity '{level}':"]
+    for i, e in enumerate(results, 1):
+        lines.append(f"{i}. {store.format_entry(e)}")
+    return "\n".join(lines)
 
 
 def search_keyword(keyword: str) -> str:
-    # TODO: implement SEARCH_KEYWORD
-    pass
+    store.acquire_read()
+    try:
+        results = [
+            entry for entry in store.log_store
+            if keyword.lower() in entry["message"].lower()
+        ]
+    finally:
+        store.release_read()
+
+    if not results:
+        return f"Found 0 matching entries for keyword '{keyword}'."
+
+    lines = [f"Found {len(results)} matching entries for keyword '{keyword}':"]
+    for i, e in enumerate(results, 1):
+        lines.append(f"{i}. {store.format_entry(e)}")
+    return "\n".join(lines)
 
 
 def count_keyword(keyword: str) -> str:
-    # TODO: implement COUNT_KEYWORD
-    pass
+    store.acquire_read()
+    try:
+        count = sum(
+            1 for entry in store.log_store
+            if keyword.lower() in entry["message"].lower()
+        )
+    finally:
+        store.release_read()
+
+    if count == 1:
+        return f"The keyword '{keyword}' appears in 1 indexed log entry."
+    return f"The keyword '{keyword}' appears in {count:,} indexed log entries."

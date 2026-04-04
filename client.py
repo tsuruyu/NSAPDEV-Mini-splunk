@@ -205,23 +205,55 @@ def cmd_search_host(host: str, port: int, tokens: list[str]):
 
 
 def cmd_search_daemon(host: str, port: int, tokens: list[str]):
-    # TODO: implement SEARCH_DAEMON
-    pass
+    if len(tokens) < 4:
+        print("[Client Error] Usage: QUERY <IP>:<Port> SEARCH_DAEMON <daemon>")
+        return
+
+    argument = tokens[3]
+    print("[System Message] Sending query...")
+
+    response = do_send(host, port, f"QUERY|SEARCH_DAEMON|{argument}")
+    if response is not None:
+        print(f"[Server Response] {response}")
 
 
 def cmd_search_severity(host: str, port: int, tokens: list[str]):
-    # TODO: implement SEARCH_SEVERITY
-    pass
+    if len(tokens) < 4:
+        print("[Client Error] Usage: QUERY <IP>:<Port> SEARCH_SEVERITY <level>")
+        return
+
+    argument = tokens[3]
+    print("[System Message] Sending query...")
+
+    response = do_send(host, port, f"QUERY|SEARCH_SEVERITY|{argument}")
+    if response is not None:
+        print(f"[Server Response] {response}")
 
 
 def cmd_search_keyword(host: str, port: int, tokens: list[str]):
-    # TODO: implement SEARCH_KEYWORD
-    pass
+    if len(tokens) < 4:
+        print("[Client Error] Usage: QUERY <IP>:<Port> SEARCH_KEYWORD <keyword>")
+        return
+
+    argument = " ".join(tokens[3:]).strip('"').strip("'")
+    print("[System Message] Sending query...")
+
+    response = do_send(host, port, f"QUERY|SEARCH_KEYWORD|{argument}")
+    if response is not None:
+        print(f"[Server Response] {response}")
 
 
 def cmd_count_keyword(host: str, port: int, tokens: list[str]):
-    # TODO: implement COUNT_KEYWORD
-    pass
+    if len(tokens) < 4:
+        print("[Client Error] Usage: QUERY <IP>:<Port> COUNT_KEYWORD <keyword>")
+        return
+
+    argument = " ".join(tokens[3:]).strip('"').strip("'")
+    print("[System Message] Sending query...")
+
+    response = do_send(host, port, f"QUERY|COUNT_KEYWORD|{argument}")
+    if response is not None:
+        print(f"[Server Response] {response}")
 
 
 def cmd_purge(host: str, port: int):
