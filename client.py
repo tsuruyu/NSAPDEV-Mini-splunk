@@ -37,7 +37,7 @@ Available Commands
   QUERY <IP>:<Port> COUNT_KEYWORD <keyword>
       Count how many log entries contain a keyword.
 
-  ADMIN <IP>:<Port> PURGE
+  PURGE <IP>:<Port>
       Clear all indexed log entries on the server.
 
   HELP  — Show this help text.
@@ -302,22 +302,17 @@ def cmd_query(tokens: list[str]):
         cmd_count_keyword(host, port, tokens)
 
 
-def cmd_admin(tokens: list[str]):
-    if len(tokens) < 3:
-        print("[Client Error] Usage: ADMIN <IP>:<Port> PURGE")
+def cmd_purge_new(tokens: list[str]):
+    if len(tokens) < 2:
+        print("[Client Error] Usage: PURGE <IP>:<Port>")
         return
 
-    addr_str   = tokens[1]
-    subcommand = tokens[2].upper()
+    addr_str = tokens[1]
 
     try:
         host, port = parse_address(addr_str)
     except ValueError as e:
         print(f"[Client Error] {e}")
-        return
-
-    if subcommand != "PURGE":
-        print(f"[Client Error] Unknown ADMIN subcommand '{subcommand}'. Only PURGE is supported.")
         return
 
     cmd_purge(host, port)
@@ -365,8 +360,8 @@ def repl():
         elif command == "QUERY":
             cmd_query(tokens)
 
-        elif command == "ADMIN":
-            cmd_admin(tokens)
+        elif command == "PURGE":
+            cmd_purge_new(tokens)
 
         else:
             print(f"[Client Error] Unknown command '{command}'. Type HELP for usage.")

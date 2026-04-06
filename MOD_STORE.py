@@ -3,9 +3,10 @@ import re
 
 log_store = []
 
-read_count      = 0
+read_count = 0
 read_count_lock = threading.Lock()
-write_lock      = threading.Lock()
+write_lock = threading.Lock()
+condition_var = threading.Condition(read_count_lock)
 
 SYSLOG_PATTERN = re.compile(
     r"^(?P<month>\w{3})\s{1,2}(?P<day>\d{1,2})\s+"
@@ -25,18 +26,30 @@ SEVERITY_MAP = {
 
 def acquire_read():
     global read_count
-    with read_count_lock:
+    with condition_var:
         read_count += 1
-        if read_count == 1:
-            write_lock.acquire()
 
 
 def release_read():
     global read_count
-    with read_count_lock:
+    with condition_var:
         read_count -= 1
-        if read_count == 0:
-            write_lock.release()
+        condition_var.notify_all()
+
+
+def acquire_write():
+    write_lock.acquire()
+    condition_var.acquire()
+    while read_count > 0:
+        condition_var.wait()
+    condition_var.release()
+
+
+def release_write():
+    condition_var.acquire()
+    condition_var.notify_all()
+    condition_var.release()
+    write_lock.release()
 
 
 def infer_severity(message: str) -> str:
@@ -55,15 +68,15 @@ def parse_syslog_line(line: str) -> dict | None:
     if not match:
         return None
     timestamp = f"{match.group('month')} {int(match.group('day')):2d} {match.group('time')}"
-    message   = match.group("message")
+    message = match.group("message")
     return {
         "timestamp": timestamp,
-        "hostname":  match.group("hostname"),
-        "process":   match.group("process"),
-        "pid":       match.group("pid") or "",
-        "severity":  infer_severity(message),
-        "message":   message,
-        "raw":       line,
+        "hostname": match.group("hostname"),
+        "process": match.group("process"),
+        "pid": match.group("pid") or "",
+        "severity": infer_severity(message),
+        "message": message,
+        "raw": line,
     }
 
 
