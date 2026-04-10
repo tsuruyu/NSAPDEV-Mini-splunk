@@ -1,15 +1,5 @@
 # NSAPDEV "Mini-Splunk" Syslog Analytics Server
 
-## Installation and allowing git read/write access
-Save this key in `~/.ssh/id_ed25519.pub`
-```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEGoK0GrEdhfnEptzcL6CZoYGojZM3IUrbjZwLPSIVMq NSAPDEV
-```
-Then install with:
-```bash
-git clone ssh://git@ssh.github.com:443/tsuruyu/NSAPDEV-Mini-splunk.git
-```
-
 ## Running the program
 1. On two separate terminals:
 ```bash
